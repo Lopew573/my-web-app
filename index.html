@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MinesHackAI</title>
+    <style>
+        @keyframes wave {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+        @keyframes reveal {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-20px);
+            }
+            60% {
+                transform: translateY(-10px);
+            }
+        }
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #1E90FF; /* Синий фон */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            width: 100%;
+            max-width: 400px; /* Ограничиваем максимальную ширину для удобства на телефонах */
+            padding: 10px;
+        }
+        .title {
+            color: #FFA500; /* Оранжево-желтый цвет */
+        }
+        .title span {
+            display: inline-block;
+            animation: wave 1s infinite;
+        }
+        .title span:nth-child(1) { animation-delay: 0s; }
+        .title span:nth-child(2) { animation-delay: 0.1s; }
+        .title span:nth-child(3) { animation-delay: 0.2s; }
+        .title span:nth-child(4) { animation-delay: 0.3s; }
+        .title span:nth-child(5) { animation-delay: 0.4s; }
+        .title span:nth-child(6) { animation-delay: 0.5s; }
+        .title span:nth-child(7) { animation-delay: 0.6s; }
+        .title span:nth-child(8) { animation-delay: 0.7s; }
+        .title span:nth-child(9) { animation-delay: 0.8s; }
+        .title span:nth-child(10) { animation-delay: 0.9s; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-gap: 2px; /* Минимальные отступы между ячейками */
+            margin-top: 20px;
+        }
+        .cell {
+            position: relative;
+            width: 100%;
+            padding-top: 100%; /* Делает ячейки квадратными */
+            border-radius: 10px; /* Закругленные углы */
+            background-color: #003366; /* Темно-синий цвет ячейки */
+            border: 2px solid #003366; /* Темно-синий контур */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden; /* Предотвращает наложение */
+        }
+        .cell .inner-circle {
+            width: 70%;
+            height: 70%;
+            background-color: #87CEEB; /* Голубой круг внутри закрытой ячейки */
+            border-radius: 50%;
+        }
+        .cell-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px; /* Увеличиваем размер звездочки */
+            color: white;
+            opacity: 0; /* Начальное состояние - невидимость */
+        }
+        .cell.revealed {
+            background-color: yellow; /* Цвет открытой ячейки */
+            animation: reveal 0.3s forwards; /* Анимация раскрытия, сделана быстрее */
+        }
+        .cell.revealed .cell-content {
+            opacity: 1; /* Звездочка становится видимой при раскрытии */
+        }
+        .controls {
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .button {
+            padding: 20px 25px; /* Увеличиваем размер кнопок */
+            margin: 0 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.2em; /* Увеличиваем размер текста */
+        }
+        .get-signal {
+            background-color: #28a745; /* Зеленый цвет */
+            color: white;
+            font-weight: bold; /* Жирный шрифт */
+            animation: bounce 2.7s infinite; /* Анимация прыжка каждые 2.7 секунды */
+        }
+        .mines {
+            background-color: #003366; /* Темно-синий цвет */
+            color: white;
+            font-weight: bold;
+            position: relative;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #003366; /* Темно-синий цвет */
+            min-width: 100%;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+        .dropdown-content table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .dropdown-content th, .dropdown-content td {
+            border: 1px solid #003366;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            color: white; /* Белый текст */
+            font-weight: bold; /* Жирный текст */
+        }
+        .dropdown-content th:hover, .dropdown-content td:hover {
+            background-color: #1a5276; /* Более светлый оттенок синего при наведении */
+        }
+        .disabled {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        @media (max-width: 600px) {
+            .button {
+                padding: 15px 20px; /* Корректируем размеры для мобильных устройств */
+                font-size: 1.1em;
+            }
+            .cell-content {
+                font-size: 30px; /* Корректируем размер звездочки для мобильных устройств */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">
+            <span>M</span><span>i</span><span>n</span><span>e</span><span>s</span><span>H</span><span>a</span><span>c</span><span>k</span><span>AI</span>
+        </h1>
+        <div class="controls">
+            <button class="button mines" id="minesButton">Mines: <span id="selectedMines">1</span></button>
+        </div>
+        <div class="dropdown-content" id="minesDropdown">
+            <table>
+                <tr><td>1</td><td>2</td><td>3</td></tr>
+                <tr><td>5</td><td>7</td><td>10</td></tr>
+                <tr><td>20</td></tr>
+            </table>
+        </div>
+        <div class="grid" id="grid"></div>
+        <div class="controls">
+            <button class="button get-signal" id="getSignalButton">Get Signal</button>
+        </div>
+    </div>
+
+    <script>
+        // Создание сетки ячеек 5x5
+        const grid = document.getElementById('grid');
+        for (let i = 0; i < 25; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            const innerCircle = document.createElement('div');
+            innerCircle.className = 'inner-circle';
+            cell.appendChild(innerCircle);
+            const cellContent = document.createElement('div');
+            cellContent.className = 'cell-content';
+            cellContent.id = `cell-${i}`;
+            cell.appendChild(cellContent);
+            grid.appendChild(cell);
+        }
+
+        // Переменная для хранения количества мин
+        let mineCount = 1;
+
+        // Функция для установки количества мин
+        function setMines(count) {
+            mineCount = count;
+            document.getElementById('selectedMines').innerText = count; // Отображение выбранного количества мин
+            resetGrid(); // Автоматический сброс поля при изменении количества мин
+        }
+
+        // Показать или скрыть таблицу выбора мин
+        document.getElementById('minesButton').addEventListener('click', function() {
+            const dropdown = document.getElementById('minesDropdown');
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        });
+
+        // Обработчик выбора мины из таблицы
+        document.getElementById('minesDropdown').addEventListener('click', function(event) {
+            if (event.target.tagName === 'TD') {
+                setMines(parseInt(event.target.innerText));
+                document.getElementById('minesDropdown').style.display = 'none';
+            }
+        });
+
+        // Функция для сброса поля
+        function resetGrid() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                cell.classList.remove('revealed');
+                cell.querySelector('.cell-content').innerHTML = '';
+                cell.querySelector('.cell-content').style.opacity = '0'; // Скрыть звездочку
+            });
+        }
+
+        // Функция для выделения случайных ячеек с поочередным раскрытием
+        function highlightRandomCells() {
+            const randomCells = [];
+            const totalCells = 25;
+
+            // Функция для получения случайного числа в диапазоне
+            function getRandomInt(min, max) {
+                return Math.floor(Math.random() * (max - min + 1)) + min;
+            }
+
+            // Логика выбора количества закрытых ячеек
+            let closedCellsCount = 0;
+            let probability = Math.random();
+
+            switch (mineCount) {
+                case 1:
+                    closedCellsCount = probability <= 0.85 ? getRandomInt(20, 24) : getRandomInt(18, 20);
+                    break;
+                case 2:
+                    closedCellsCount = probability <= 0.85 ? getRandomInt(18, 20) : getRandomInt(15, 18);
+                    break;
+                case 3:
+                    closedCellsCount = probability <= 0.85 ? getRandomInt(15, 18) : getRandomInt(12, 15);
+                    break;
+                case 5:
+                    closedCellsCount = probability <= 0.85 ? getRandomInt(2, 5) : getRandomInt(1, 2);
+                    break;
+                case 7:
+                    closedCellsCount = probability <= 0.85 ? getRandomInt(2, 3) : 1;
+                    break;
+                case 10:
+                    closedCellsCount = probability <= 0.85 ? getRandomInt(1, 3) : getRandomInt(2, 4);
+                    break;
+                case 20:
+                    closedCellsCount = probability <= 0.85 ? 1 : 2;
+                    break;
+                default:
+                    closedCellsCount = getRandomInt(1, totalCells - mineCount);
+            }
+
+            // Выбор случайных ячеек
+            while (randomCells.length < closedCellsCount) {
+                const randomIndex = Math.floor(Math.random() * totalCells);
+                if (!randomCells.includes(randomIndex)) {
+                    randomCells.push(randomIndex);
+                }
+            }
+
+            // Функция для поочередного раскрытия ячеек
+            randomCells.forEach((index, i) => {
+                setTimeout(() => {
+                    const cell = document.getElementById(`cell-${index}`);
+                    cell.classList.add('revealed');
+                    cell.querySelector('.cell-content').innerHTML = '⭐️';
+                    cell.querySelector('.cell-content').style.opacity = '1'; // Показать звездочку
+                }, i * 100); // Задержка в 100 мс между раскрытием ячеек (быстрее)
+            });
+        }
+
+        // Обработчик события для кнопки "Get Signal"
+        document.getElementById('getSignalButton').addEventListener('click', () => {
+            resetGrid(); // Сброс поля перед каждым новым выделением ячеек
+            highlightRandomCells();
+        });
+    </script>
+</body>
+</html>
